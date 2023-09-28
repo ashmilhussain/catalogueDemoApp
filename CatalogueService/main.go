@@ -1,13 +1,18 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 
 	"github.com/ashmilhussain/catalogueDemoApp/routers"
 )
 
 func main() {
-	router := routers.NewRouter()
-	log.Fatal(http.ListenAndServe(":8080", router))
+
+	var server = routers.Server{}
+	godotenv.Load()
+	server.InitializeRoutes()
+	server.Handler.Initialize(os.Getenv("DB_PORT"), os.Getenv("DB_HOST"))
+	server.Run(":8080")
 }

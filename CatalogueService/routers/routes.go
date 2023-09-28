@@ -3,44 +3,32 @@ package routers
 import (
 	"net/http"
 
-	"github.com/ashmilhussain/catalogueDemoApp/handlers"
+	"fmt"
+	"log"
+
 	"github.com/gorilla/mux"
+
+	myHandler "github.com/ashmilhussain/catalogueDemoApp/handlers"
 )
 
-type Route struct {
-	Name        string
-	Method      string
-	Pattern     string
-	HandlerFunc http.HandlerFunc
+type Server struct {
+	Handler myHandler.Server
+	Router  *mux.Router
 }
 
-type Routes []Route
+func (server *Server) InitializeRoutes() {
 
-func NewRouter() *mux.Router {
+	server.Router = mux.NewRouter()
+	server.addRoutes()
 
-	router := mux.NewRouter().StrictSlash(true)
-	for _, route := range routes {
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(route.HandlerFunc)
-	}
-
-	return router
 }
 
-var routes = Routes{
-	Route{
-		"Index",
-		"GET",
-		"/",
-		handlers.Index,
-	},
-	Route{
-		"TestRest",
-		"GET",
-		"/products",
-		handlers.ProductList,
-	},
+func (server *Server) Run(addr string) {
+	fmt.Println("Listening to port 8080")
+	log.Fatal(http.ListenAndServe(addr, server.Router))
+}
+
+func (server *Server) addRoutes() {
+	server.Router.HandleFunc("/", server.Handler.Index).Methods("GET")
+	server.Router.HandleFunc("/products", server.Handler.ProductList).Methods("GET")
 }

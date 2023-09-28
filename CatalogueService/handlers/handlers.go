@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,8 +13,13 @@ import (
 	"strconv"
 
 	"gorm.io/driver/postgres"
+
 	"gorm.io/gorm"
 )
+
+type Server struct {
+	DB *gorm.DB
+}
 
 type Product struct {
 	gorm.Model
@@ -29,23 +35,32 @@ type Response struct {
 	AmountInINR int `json:"Amount_INR"`
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func (server *Server) Initialize(DbPort, DbHost string) {
+
+	var err error
+
+	Dbdriver := "postgres"
+	DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", DbHost, DbPort, "postgresadmin", "postgresdb", "admin123")
+	server.DB, err = gorm.Open(postgres.Open(DBURL), &gorm.Config{})
+	if err != nil {
+		fmt.Printf("Cannot connect to %s database", Dbdriver)
+		log.Fatal("This is the error:", err)
+	} else {
+		fmt.Printf("We are connected to the %s database", Dbdriver)
+	}
+
+	err = server.DB.AutoMigrate(&Product{})
+
+}
+
+func (server *Server) Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to Go , You are visiting Directory :/ %q", html.EscapeString(r.URL.Path))
 }
 
-func ProductList(w http.ResponseWriter, r *http.Request) {
-
-	dsn := "host=localhost user=postgresadmin password=admin123 dbname=postgresdb port=5430"
-
-	// Open a connection to the database
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	err = db.AutoMigrate(&Product{})
-	if err != nil {
-		panic("failed to connect to database: " + err.Error())
-	}
+func (server *Server) ProductList(w http.ResponseWriter, r *http.Request) {
 
 	var products []Product
-	db.Find(&products)
+	server.DB.Find(&products)
 
 	for i, product := range products {
 		products[i].Price = ConvertCurrenct(product.Price)
@@ -57,8 +72,10 @@ func ProductList(w http.ResponseWriter, r *http.Request) {
 func ConvertCurrenct(amount int) int {
 
 	amountstr := strconv.Itoa(amount)
+	currencySHost := os.Getenv("CS_HOST")
+	currencySPort := os.Getenv("CS_PORT")
 
-	requestURL := "http://localhost:5000/convert/" + amountstr
+	requestURL := "http://" + currencySHost + ":" + currencySPort + "/convert/" + amountstr
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		fmt.Printf("client: could not create request: %s\n", err)
