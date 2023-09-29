@@ -3,6 +3,8 @@
 
 # Import the modules needed
 import requests
+import os
+
 
 
 from flask import Flask, jsonify, request
@@ -30,7 +32,7 @@ class Currency_convertor:
 
 # creating a Flask app
 app = Flask(__name__)
-YOUR_ACCESS_KEY = '92b413765703a8b7ad401b1a39123453'
+YOUR_ACCESS_KEY = os.environ['KEY']
 
 # on the terminal type: curl http://127.0.0.1:5000/
 # returns hello world when we use GET.
@@ -57,5 +59,5 @@ def disp(num):
 # Driver code
 if __name__ == "__main__":
 
-    app.run(debug = True)
+    app.run(host='0.0.0.0',debug = True)
 	

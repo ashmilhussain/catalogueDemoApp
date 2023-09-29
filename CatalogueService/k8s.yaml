@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  catalogueservice
+  labels:
+    app:  catalogueservice
+spec:
+  selector:
+    matchLabels:
+      app: catalogueservice
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app:  catalogueservice
+    spec:
+      containers:
+      - name:  catalogueservice
+        image:  ashmil/catalogueservice:latest
+        # command:
+        # - sleep
+        # - infinity
+        env:
+        - name: DB_HOST
+          value: "postgres.pgdb.svc.cluster.local"
+        - name: DB_PORT
+          value: "5432"
+        - name: CS_HOST
+          value: "currency-service.app.svc.cluster.local"
+        - name: CS_PORT
+          value: "80"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort:  8080
+      initContainers:
+      - name: init-myservice
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup currency-service.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for currency-service; sleep 2; done"]
+      # - name: postgres-auth
+      #   image: postgres:latest
+      #   command: ["/bin/sh", "-c", "until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d POSTGRES_DB  -c 'SELECT 1'; do sleep 2; done"]
+      #   env:
+      #     - name: POSTGRES_USER
+      #       value: postgresadmin
+      #     - name: POSTGRES_PASSWORD
+      #       value: admin123
+      #     - name: POSTGRES_HOST
+      #       value: postgres.pgdb.svc.cluster.local
+      #     - name: POSTGRES_DB
+      #       value: postgresdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogue-service
+spec:
+  selector:
+    app: catalogueservice
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: LoadBalancer
